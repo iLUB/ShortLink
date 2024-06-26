@@ -9,11 +9,11 @@ require_once('./Services/UIComponent/classes/class.ilUserInterfaceHookPlugin.php
  * @version $Id$
  *
  */
-class ilShortLinkPlugin extends ilUserInterfaceHookPlugin {
+class ilShortLinkPlugin extends ilUserInterfaceHookPlugin
+{
+    public const  TABLE_NAME = 'ui_uihk_shortlink';
 
-    const  TABLE_NAME = 'ui_uihk_shortlink';
-
-	protected static ilShortLinkPlugin $instance;
+    protected static ilShortLinkPlugin $instance;
     protected \ILIAS\HTTP\Wrapper\ArrayBasedRequestWrapper $query;
     protected \ILIAS\Refinery\Factory $refinery;
 
@@ -21,22 +21,27 @@ class ilShortLinkPlugin extends ilUserInterfaceHookPlugin {
     public function __construct()
     {
         global $DIC;
-        $this->query = $DIC->http()->wrapper()->query();
-        $this->refinery = $DIC->refinery();
+        if(isset($DIC['http'])) {
+            $this->query = $DIC->http()->wrapper()->query();
+        }
+        if(isset($DIC ['refinery'])) {
+            $this->refinery = $DIC->refinery();
+        }
         $component_repository = $DIC["component.repository"];
         parent::__construct($DIC->database(), $component_repository, 'shortlink');
     }
-	public static function getInstance(): ilShortLinkPlugin
+    public static function getInstance(): ilShortLinkPlugin
     {
         global $DIC;
 
-		if (!isset(self::$instance)) {
-			self::$instance = new self();
-		}
-		return self::$instance;
-	}
+        if (!isset(self::$instance)) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
 
-    public function getPluginName(): string {
+    public function getPluginName(): string
+    {
         return 'ShortLink';
     }
 }
