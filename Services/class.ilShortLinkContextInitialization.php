@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 require_once("./Services/Context/classes/class.ilContext.php");
 
 
@@ -12,12 +13,14 @@ require_once("./Services/Context/classes/class.ilContext.php");
  * @author  Tomasz Kolonko <thomas.kolonko@ilub.unibe.ch>
  * @version $Id$
  */
-class ilShortLinkContextInitialization extends ilContext {
+class ilShortLinkContextInitialization extends ilContext
+{
     /**
      * Initialization of a existing context (CONTEXT_WEB_ACCESS_CHECK)
      */
-    public static function init($a_type) {
-        parent::init($a_type);
+    public static function init(string $a_type): bool
+    {
+        return parent::init($a_type);
     }
 
 }
