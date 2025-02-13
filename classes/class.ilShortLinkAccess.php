@@ -22,8 +22,8 @@ declare(strict_types=1);
 	+-----------------------------------------------------------------------------+
 */
 
-require_once('./Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/classes/class.ilObjShortLink.php');
-require_once('./Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/classes/class.ilShortLinkPlugin.php');
+require_once './Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/classes/class.ilObjShortLink.php';
+require_once './Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/classes/class.ilShortLinkPlugin.php';
 
 
 
@@ -59,11 +59,10 @@ class ilShortLinkAccess {
     /**
      * Checking if the current user is owner OR admin. Returns true if the user is either the owner of
      * the shortlink or administrator
-     * @param $idNum
      */
     public function checkPermission(ilObjShortLink $obj, int $idNum): bool
     {
-        $isOwner = ($obj->getOwner($idNum) == $this->usr->getLogin());
+        $isOwner = $obj->getOwner($idNum) == $this->usr->getLogin();
         $isAdmin = $this->checkAdministrationPrivileges();
         if($isOwner || $isAdmin) {
             return true;

@@ -22,7 +22,7 @@ declare(strict_types=1);
 	+-----------------------------------------------------------------------------+
 */
 
-require_once('Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/classes/class.ilShortLinkGUI.php');
+require_once 'Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/classes/class.ilShortLinkGUI.php';
 
 
 /**
@@ -37,22 +37,22 @@ require_once('Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/
  * @ilCtrl_isCalledBy ilShortLinkConfigGUI: ilRepositoryGUI, ilAdministrationGUI, ilObjPluginDispatchGUI
  *
  */
-class ilShortLinkConfigGUI extends ilPluginConfigGUI {
+class ilShortLinkConfigGUI extends ilPluginConfigGUI
+{
 
-
-
-	public function executeCommand(): void
+    /**
+     * @throws ilCtrlException
+     */
+    public function executeCommand(): void
     {
-		parent::executeCommand();
-		global $DIC;
-		$mainGUI = new ilShortLinkGUI();
-		$DIC->ctrl()->forwardCommand($mainGUI);
-	}
+        parent::executeCommand();
+        global $DIC;
+        $mainGUI = new ilShortLinkGUI();
+        $DIC->ctrl()->forwardCommand($mainGUI);
+    }
 
-
-
-	function performCommand($cmd): void
+    public function performCommand($cmd): void
     {
-		//Do nothing here
-	}
+        //Do nothing here
+    }
 }

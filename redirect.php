@@ -16,33 +16,33 @@ if (is_file('path')) {
 
 chdir($path);
 
-require_once("libs/composer/vendor/autoload.php");
-require_once('./Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/Services/class.ilShortLinkContextInitialization.php');
-require_once('./Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/classes/class.ilShortLinkPlugin.php');
-require_once('./Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/classes/class.ilObjShortLink.php');
+require_once 'libs/composer/vendor/autoload.php';
+require_once './Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/Services/class.ilShortLinkContextInitialization.php';
+require_once './Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/classes/class.ilShortLinkPlugin.php';
+require_once './Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/classes/class.ilObjShortLink.php';
 
 
 /**
  * Initialization of the ShortLink Context, that allows to enter the shortlink without being logged into ILIAS. If user is not logged in yet she
  * will be redirected to the logging page. If the user is logged in, she will get redirected to the page, if it exists.
  */
-ilShortLinkContextInitialization::init(ilShortLinkContextInitialization::CONTEXT_WAC);
-define("CLIENT_ID", "ilias3_unibe");
+ilShortLinkContextInitialization::init(ilContext::CONTEXT_WEB);
 
 
-require_once("./Services/Init/classes/class.ilInitialisation.php");
+require_once './Services/Init/classes/class.ilInitialisation.php';
 ilInitialisation::initILIAS();
 
+global $DIC;
 $fetcher = new ilObjShortLink();
 $plugin =ilShortLinkPlugin::getInstance();
 
-$full_url = $fetcher->fetchLongURL($_GET['shortlink']);
+$full_url = $fetcher->fetchLongURL($DIC->http()->wrapper()->query()->retrieve('shortlink', $DIC->refinery()->kindlyTo()->string()));
 
+global $DIC;
 if($full_url == NULL) {
-    include_once('./Services/Utilities/classes/class.ilUtil.php');
-    ilUtil::sendFailure($plugin->txt('link_not_found'), TRUE);
-    $redirectToOverview = 'https://' . $_SERVER['HTTP_HOST'] . '/goto.php?target=root_1&client_id=ilias3_unibe';
-    ilUtil::redirect($redirectToOverview);
+    $DIC->ui()->mainTemplate()->setOnScreenMessage(ilGlobalTemplateInterface::MESSAGE_TYPE_FAILURE , $plugin->txt('link_not_found'));
+    $redirectToOverview = 'https://' . $_SERVER['HTTP_HOST'] . '/goto.php?target=root_1';
+    $DIC->ctrl()->redirectToURL($redirectToOverview);
 } else {
-    ilUtil::redirect($full_url);
+    $DIC->ctrl()->redirectToURL($full_url);
 }

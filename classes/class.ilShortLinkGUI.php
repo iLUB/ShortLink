@@ -8,10 +8,10 @@ declare(strict_types=1);
  * @ilCtrl_isCalledBy ilShortLinkUIHookGUI, ilUIPluginRouterGUI: ilShortLinkGUI
  */
 
-require_once('Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/classes/class.ilObjShortLink.php');
-require_once('Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/classes/class.ilShortLinkAccess.php');
-include_once('Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/classes/class.ilShortLinkTableGUI.php');
-include_once('Services/Form/classes/class.ilPropertyFormGUI.php');
+require_once 'Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/classes/class.ilObjShortLink.php';
+require_once 'Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/classes/class.ilShortLinkAccess.php';
+include_once 'Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/classes/class.ilShortLinkTableGUI.php';
+include_once 'Services/Form/classes/class.ilPropertyFormGUI.php';
 
 class ilShortLinkGUI extends ilObjectPluginGUI
 {
@@ -29,6 +29,7 @@ class ilShortLinkGUI extends ilObjectPluginGUI
      *
      * Instantiates local form, plugin, object and AccessChecker member variables.
      * Gets the standard template for HTML output.
+     * @throws ilTemplateException
      */
     public function __construct()
     {
@@ -50,6 +51,7 @@ class ilShortLinkGUI extends ilObjectPluginGUI
 
     /**
      * Handles all commands of this class
+     * @throws ilCtrlException
      */
     public function executeCommand(): void
     {
@@ -60,13 +62,13 @@ class ilShortLinkGUI extends ilObjectPluginGUI
             case 'add':
             case 'save':
             case 'listShortLinks':
+            case 'doUpdate':
+            case 'delete':
             case 'confirmedDelete':
 
                 $this->$cmd();
                 break;
             case 'edit':
-            case 'delete':
-            case 'doUpdate':
 
                 $this->$cmd();
                 break;
@@ -78,6 +80,7 @@ class ilShortLinkGUI extends ilObjectPluginGUI
 
     /**
      * Prepares the main layout with the infobox and lists all ShortLinks
+     * @throws ilCtrlException
      */
     protected function showContent(): void
     {
@@ -88,7 +91,7 @@ class ilShortLinkGUI extends ilObjectPluginGUI
             $this->obj = new ilObjShortLink();
         }
 
-        $this->my_tpl->setOnScreenMessage(IlGlobalTemplateInterface::MESSAGE_TYPE_INFO, $this->pl->txt('info_box'), true);
+        $this->my_tpl->setOnScreenMessage(ilGlobalTemplateInterface::MESSAGE_TYPE_INFO, $this->pl->txt('info_box'), true);
 
         $this->my_tpl->setTitle($this->pl->txt('title'));
         $this->listShortLinks();
@@ -96,6 +99,7 @@ class ilShortLinkGUI extends ilObjectPluginGUI
 
     /**
      * Initializes the toolbar and adds an "add" button.
+     * @throws ilCtrlException
      */
     protected function initToolbar(): void
     {
@@ -104,6 +108,9 @@ class ilShortLinkGUI extends ilObjectPluginGUI
         $this->setToolbar($toolbar);
     }
 
+    /**
+     * @throws ilCtrlException
+     */
     protected function add(): void
     {
         $this->form = $this->initConfigurationForm();
@@ -112,6 +119,8 @@ class ilShortLinkGUI extends ilObjectPluginGUI
 
     /**
      * Saves all the information given in the form to a new ShortLink Object and adds it to the DB
+     * @throws ilCtrlException
+     * @throws ilDatabaseException
      */
     public function save(): void
     {
@@ -120,9 +129,9 @@ class ilShortLinkGUI extends ilObjectPluginGUI
         if($this->form->checkInput() && $this->checkInputValidity()) {
             $this->externalFeedBlock = new ilObjShortLink();
             $this->externalFeedBlock->nextId();
-            $this->externalFeedBlock->setLongURL($this->form->getInput("longUrl"));
-            $this->externalFeedBlock->setShortLink($this->form->getInput("shortLink"));
-            $this->externalFeedBlock->setCustomer($this->form->getInput("customer"));
+            $this->externalFeedBlock->setLongURL($this->form->getInput('longUrl'));
+            $this->externalFeedBlock->setShortLink($this->form->getInput('shortLink'));
+            $this->externalFeedBlock->setCustomer($this->form->getInput('customer'));
             $this->externalFeedBlock->setContact($ilUser->getLogin());
             $this->externalFeedBlock->doCreate();
         }
@@ -149,9 +158,11 @@ class ilShortLinkGUI extends ilObjectPluginGUI
     private function checklongURL(): bool
     {
         $isValid = true;
-        if(strlen($this->form->getInput("longUrl")) > 99) {
+        if(strlen($this->form->getInput('longUrl')) > 99) {
 
-            $this->my_tpl->setOnScreenMessage(IlGlobalTemplateInterface::MESSAGE_TYPE_FAILURE, $this->pl->txt("full_url_too_long"), true);
+            $this->my_tpl->setOnScreenMessage(ilGlobalTemplateInterface::MESSAGE_TYPE_FAILURE, $this->pl->txt(
+                'full_url_too_long'
+            ), true);
             $isValid = false;
         }
         return $isValid;
@@ -166,15 +177,19 @@ class ilShortLinkGUI extends ilObjectPluginGUI
     private function checkShortULR(): bool
     {
         $isValid = true;
-        $regex = "/^[a-zA-Z0-9\-_]+$/";
-        if(!preg_match($regex, $this->form->getInput("shortLink"))) {
-            $this->my_tpl->setOnScreenMessage(IlGlobalTemplateInterface::MESSAGE_TYPE_FAILURE, $this->pl->txt("characters_not_allowed") . ", used regex: ", true);
+        $regex = '/^[a-zA-Z0-9\-_]+$/';
+        if(!preg_match($regex, $this->form->getInput('shortLink'))) {
+            $this->my_tpl->setOnScreenMessage(ilGlobalTemplateInterface::MESSAGE_TYPE_FAILURE, $this->pl->txt(
+                    'characters_not_allowed'
+                ) . ', used regex: ', true);
 
             $isValid = false;
         }
         $this->obj = new ilObjShortLink();
-        if($this->obj->checkIfShortLinkAlreadyMentioned($this->form->getInput("shortLink"))) {
-            $this->my_tpl->setOnScreenMessage(IlGlobalTemplateInterface::MESSAGE_TYPE_FAILURE, $this->pl->txt("exists_already"), true);
+        if($this->obj->checkIfShortLinkAlreadyMentioned($this->form->getInput('shortLink'))) {
+            $this->my_tpl->setOnScreenMessage(ilGlobalTemplateInterface::MESSAGE_TYPE_FAILURE, $this->pl->txt(
+                'exists_already'
+            ), true);
 
             //$this->showContent();
             $isValid = false;
@@ -184,6 +199,7 @@ class ilShortLinkGUI extends ilObjectPluginGUI
 
     /**
      * Initialzes new tableGUI layout and populates it with data from the DB
+     * @throws ilCtrlException
      */
     public function listShortLinks(): void
     {
@@ -193,23 +209,29 @@ class ilShortLinkGUI extends ilObjectPluginGUI
 
     /**
      * Creates new ShortLink object to be edited inside form
+     * @throws ilCtrlException|JsonException
      */
     public function edit(): void
     {
         $id = $this->request_wrapper->retrieve('link_id', $this->refinery->kindlyTo()->int());
         $this->obj = new ilObjShortLink();
         $shortLinkEntry = $this->obj->readSingleEntry((int)$id);
-        $this->obj->setId((int)$id);
-        $this->obj->setShortLink($shortLinkEntry['short_link']);
-        $this->obj->setLongURL($shortLinkEntry['full_url']);
-        $this->obj->setCustomer($shortLinkEntry['customer']);
-        $this->form = $this->initConfigurationForm(true);
-        $this->fillForm();
-        $this->my_tpl->setContent($this->form->getHTML());
+        if(!$shortLinkEntry) {
+            $this->my_tpl->setOnScreenMessage(ilGlobalTemplateInterface::MESSAGE_TYPE_FAILURE , $this->pl->txt('request_invalid'));
+        } else {
+            $this->obj->setId((int) $id);
+            $this->obj->setShortLink($shortLinkEntry['short_link']);
+            $this->obj->setLongURL($shortLinkEntry['full_url']);
+            $this->obj->setCustomer($shortLinkEntry['customer']);
+            $this->form = $this->initConfigurationForm(true);
+            $this->fillForm();
+            $this->my_tpl->setContent($this->form->getHTML());
+        }
     }
 
     /**
      * updates the DB with edited information from the form
+     * @throws ilCtrlException
      */
     public function doUpdate(): void
     {
@@ -224,28 +246,35 @@ class ilShortLinkGUI extends ilObjectPluginGUI
 
     /**
      * Confirmation GUI for deleting an order
+     * @throws ilCtrlException|JsonException
      */
     public function delete(): void
     {
-        $c_gui = new ilConfirmationGUI();
 
-        $c_gui->setFormAction($this->ctrl->getFormAction($this, $this->request_wrapper->retrieve('cmd', $this->refinery->kindlyTo()->string())));
-        $c_gui->setHeaderText($this->pl->txt('msg_delete_order'));
-        $c_gui->setConfirm($this->pl->txt('delete'), 'confirmedDelete');
-        $c_gui->setCancel($this->pl->txt('cancel'), 'showContent');
         $id = $this->request_wrapper->retrieve('link_id', $this->refinery->kindlyTo()->int());
-
         $objShortLink = new ilObjShortLink();
         $shortLinkEntry = $objShortLink->readSingleEntry($id);
+        if(!$shortLinkEntry) {
+            $this->my_tpl->setOnScreenMessage(ilGlobalTemplateInterface::MESSAGE_TYPE_FAILURE , $this->pl->txt('request_invalid'));
+        } else {
+            $c_gui = new ilConfirmationGUI();
+            $c_gui->addItem('obj_id', (string) $id, $shortLinkEntry['short_link']);
 
-        $c_gui->addItem("obj_id", (string)$id, $shortLinkEntry['short_link']);
-
-        $this->my_tpl->setContent($c_gui->getHTML());
-
+            $c_gui->setFormAction(
+                $this->ctrl->getFormAction(
+                    $this, $this->request_wrapper->retrieve('cmd', $this->refinery->kindlyTo()->string())
+                )
+            );
+            $c_gui->setHeaderText($this->pl->txt('msg_delete_order'));
+            $c_gui->setConfirm($this->pl->txt('delete'), 'confirmedDelete');
+            $c_gui->setCancel($this->pl->txt('cancel'), 'showContent');
+            $this->my_tpl->setContent($c_gui->getHTML());
+        }
     }
 
     /**
      * Deletes the shortLink entry and redirects to main shortlink content page
+     * @throws ilCtrlException
      */
     public function confirmedDelete(): void
     {
@@ -260,6 +289,7 @@ class ilShortLinkGUI extends ilObjectPluginGUI
      *
      * @param bool $update
      * @return ilPropertyFormGUI
+     * @throws ilCtrlException
      */
     public function initConfigurationForm(bool $update = false): ilPropertyFormGUI
     {
@@ -272,43 +302,35 @@ class ilShortLinkGUI extends ilObjectPluginGUI
         }
 
         // Text input for long URL
-        global $lng;
-        $ti = new ilTextInputGUI($this->pl->txt("longUrl"), 'longUrl');
+        $ti = new ilTextInputGUI($this->pl->txt('longUrl'), 'longUrl');
         $ti->setRequired(true);
         $ti->setMaxLength(100);
         $ti->setSize(10);
         $this->form->addItem($ti);
 
         // Text input for ShortLink
-        $ti = new ilTextInputGUI($this->pl->txt("shortLink"), 'shortLink');
+        $ti = new ilTextInputGUI($this->pl->txt('shortLink'), 'shortLink');
         $ti->setRequired(true);
         $ti->setMaxLength(40);
         $ti->setSize(10);
         $this->form->addItem($ti);
 
         // Text input for customer
-        $ti = new ilTextInputGUI($this->pl->txt("customer"), 'customer');
+        $ti = new ilTextInputGUI($this->pl->txt('customer'), 'customer');
         $ti->setRequired(true);
         $ti->setMaxLength(40);
         $ti->setSize(10);
         $this->form->addItem($ti);
 
-        if($update) {
-
-            // HiddenInputGui for id
-            $ti = new ilHiddenInputGUI($this->pl->txt('shortLink_id'), 'shortLink_id');
-            $this->form->addItem($ti);
-
-            $this->form->addCommandButton("doUpdate", $this->pl->txt("update"));
-            $this->form->addCommandButton("cancel", $this->pl->txt("cancel"));
+        // HiddenInputGui for id
+        $ti = new ilHiddenInputGUI($this->pl->txt('shortLink_id'));
+        $this->form->addItem($ti);
+        if ($update) {
+            $this->form->addCommandButton('doUpdate', $this->pl->txt('update'));
         } else {
-            // HiddenInputGui for id
-            $ti = new ilHiddenInputGUI($this->pl->txt('shortLink_id'), 'shortLink_id');
-            $this->form->addItem($ti);
-
-            $this->form->addCommandButton("save", $this->pl->txt("save"));
-            $this->form->addCommandButton("cancel", $this->pl->txt("cancel"));
+            $this->form->addCommandButton('save', $this->pl->txt('save'));
         }
+        $this->form->addCommandButton('cancel', $this->pl->txt('cancel'));
 
         return $this->form;
     }
@@ -318,7 +340,7 @@ class ilShortLinkGUI extends ilObjectPluginGUI
      */
     protected function fillForm(): void
     {
-        $values['longUrl'] = $this->obj->getLongURL();
+        $values = ['longUrl' => $this->obj->getLongURL()];
         $values['shortLink'] = $this->obj->getShortLink();
         $values['customer'] = $this->obj->getCustomer();
         $values['shortLink_id'] = $this->obj->getId();
@@ -327,12 +349,12 @@ class ilShortLinkGUI extends ilObjectPluginGUI
     }
 
 
-    public function setToolbar(ilToolbarGUI $toolbar)
+    public function setToolbar($toolbar): void
     {
         $this->toolbar = $toolbar;
     }
 
-    public function getToolbar(): ilToolbarGUI
+    public function getToolbar()
     {
         return $this->toolbar;
     }

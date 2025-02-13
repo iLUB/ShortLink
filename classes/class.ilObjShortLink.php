@@ -22,7 +22,7 @@ declare(strict_types=1);
 	+-----------------------------------------------------------------------------+
 */
 
-require_once('./Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/classes/class.ilShortLinkAccess.php');
+require_once './Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink/classes/class.ilShortLinkAccess.php';
 
 
 /**
@@ -37,7 +37,8 @@ require_once('./Customizing/global/plugins/Services/UIComponent/UserInterfaceHoo
  */
 class ilObjShortLink {
 
-
+    private ilCtrlInterface $ctrl;
+    private mixed $dic;
     protected ilDBInterface $db;
     protected ilObjUser $usr;
     protected ilShortLinkPlugin $pl;
@@ -75,35 +76,39 @@ class ilObjShortLink {
 
         $this->db = $DIC->database();
         $this->usr = $DIC->user();
+        $this->ctrl = $DIC->ctrl();
+        $this->dic = $DIC;
 
         $this->pl = ilShortLinkPlugin::getInstance();
     }
 
     /**
      * Inserts new item into DB
+     * @throws ilDatabaseException
      */
     public function doCreate(): void
     {
         $stmt = $this->db->prepare('INSERT INTO ' . ilShortLinkPlugin::TABLE_NAME .
             ' (id, short_link, full_url, customer, contact_user_login) VALUES (?, ?, ?, ?, ?);',
-            array('integer', 'text', 'text', 'text', 'text'));
-        $this->db->execute($stmt, array($this->getId(), $this->getShortLink(), $this->getLongURL(), $this->getCustomer(), $this->getContact()));
+            ['integer', 'text', 'text', 'text', 'text']
+        );
+        $this->db->execute($stmt, [$this->getId(), $this->getShortLink(), $this->getLongURL(), $this->getCustomer(), $this->getContact()]
+        );
     }
 
     public function readSingleEntry(int $id): array {
         $currentUser = $this->usr->getLogin();
         $set = $this->db->query('SELECT * FROM ' . ilShortLinkPlugin::TABLE_NAME . ' WHERE id=' . $id);
 
-        $singleEntry = array();
+        $singleEntry = [];
 
         if ($rec = $this->db->fetchAssoc($set)) {
             if ($currentUser == $rec['contact_user_login'] || $this->checkAdministrationPrivilegesFromDB()) {
-                $singleEntry = array('id' => $rec['id'], 'full_url' => $rec['full_url'], 'short_link' => $rec['short_link'],
-                    'customer' => $rec['customer'], 'contact' => $rec['contact_user_login']);
+                $singleEntry = [
+                    'id' => $rec['id'], 'full_url' => $rec['full_url'], 'short_link' => $rec['short_link'],
+                    'customer' => $rec['customer'], 'contact' => $rec['contact_user_login']
+                ];
             }
-        } else {
-            ilUtil::sendFailure($this->pl->txt("request_invalid"), true);
-            ilUtil::redirect('goto.php?target=root_1&client_id=ilias3_unibe');
         }
         return $singleEntry;
     }
@@ -116,12 +121,11 @@ class ilObjShortLink {
     /**
      * Get an array of ShortLinks that are visible for the currently logged in user
      *
-     * @param bool $as_obj
      * @return array $shortLinks
      */
     public function readEntriesPerUser(): array
     {
-        $shortLinks = array();
+        $shortLinks = [];
         $currentUser = $this->usr->getLogin();
 
         $isAdministrator = $this->checkAdministrationPrivilegesFromDB();
@@ -133,8 +137,10 @@ class ilObjShortLink {
         }
 
         while ($rec = $this->db->fetchAssoc($set)) {
-           $shortLinks[] = array('id' => (int)$rec['id'], 'full_url' => $rec['full_url'], 'short_link' => $rec['short_link'],
-               'customer' => $rec['customer'], 'contact' => $rec['contact_user_login']);
+           $shortLinks[] = [
+               'id' => (int) $rec['id'], 'full_url' => $rec['full_url'], 'short_link' => $rec['short_link'],
+               'customer' => $rec['customer'], 'contact' => $rec['contact_user_login']
+           ];
         }
 
         return $shortLinks;
@@ -153,12 +159,6 @@ class ilObjShortLink {
         );
     }
 
-    /**
-     * Get user login name
-     *
-     * @param $idNum
-     * @return string
-     */
     public function getOwner(int $idNum): string
     {
         $this->setId($idNum);
@@ -197,7 +197,7 @@ class ilObjShortLink {
     public function doDelete(int $id): void
     {
         $this->db->manipulate('DELETE FROM ' . ilShortLinkPlugin::TABLE_NAME .
-            ' WHERE id = ' . $id, 'integer');
+            ' WHERE id = ' . $id);
     }
 
     /**
@@ -207,7 +207,7 @@ class ilObjShortLink {
     {
         $administrationRole = $this->getRoleIdOfAdministrator();
         $set = $this->db->query('SELECT * FROM rbac_ua WHERE usr_id=' . $this->usr->getId() .' AND rol_id=' . $administrationRole);
-        if($rec = $this->db->fetchAssoc($set)) {
+        if($this->db->fetchAssoc($set)) {
             return true;
         }
         return false;
@@ -216,12 +216,12 @@ class ilObjShortLink {
     /**
      * Returns the id of the Administrators role
      */
-    public function getRoleIdOfAdministrator(): string {
+    public function getRoleIdOfAdministrator(): int {
         $set = $this->db->query('SELECT obj_id FROM object_data WHERE title="Administrator" AND type="role"');
         if($rec = $this->db->fetchAssoc($set)) {
             return $rec['obj_id'];
         }
-        return '-1';
+        return -1;
     }
 
     /**
@@ -238,7 +238,6 @@ class ilObjShortLink {
     /**
      * Returns true if current User is a valid and registered one.
      *
-     * @param $id
      */
     public function setId(int $id): void
     {
@@ -253,9 +252,6 @@ class ilObjShortLink {
         return $this->id;
     }
 
-    /**
-     * @param $customer
-     */
     public function setCustomer(string $customer): void
     {
         $this->customer = $customer;
@@ -269,9 +265,6 @@ class ilObjShortLink {
         return $this->customer;
     }
 
-    /**
-     * @param $contact
-     */
     public function setContact(string $contact): void
     {
         $this->contact = $contact;
@@ -285,9 +278,6 @@ class ilObjShortLink {
         return $this->contact;
     }
 
-    /**
-     * @param $longURL
-     */
     public function setLongURL(string $longURL): void
     {
         $this->longURL = $longURL;
@@ -300,10 +290,8 @@ class ilObjShortLink {
     {
         return $this->longURL;
     }
-    /**
-     * @param $shortLink
-     */
-    public function setShortLink(string $shortLink)
+
+    public function setShortLink(string $shortLink): void
     {
         $this->shortLink = $shortLink;
     }

@@ -21,8 +21,8 @@ declare(strict_types=1);
 	| Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA. |
 	+-----------------------------------------------------------------------------+
 */
-require_once('Services/Table/classes/class.ilTable2GUI.php');
-require_once('Services/UIComponent/AdvancedSelectionList/classes/class.ilAdvancedSelectionListGUI.php');
+require_once 'Services/Table/classes/class.ilTable2GUI.php';
+require_once 'Services/UIComponent/AdvancedSelectionList/classes/class.ilAdvancedSelectionListGUI.php';
 
 
 
@@ -38,7 +38,7 @@ class ilShortLinkTableGUI extends ilTable2GUI {
 
     public ilToolbarGUI $toolbar;
 
-    protected array $actions = array();
+    protected array $actions = [];
 
     protected ilCtrl $ctrl;
 
@@ -51,8 +51,9 @@ class ilShortLinkTableGUI extends ilTable2GUI {
     /**
      * ilShortLinkTableGUI constructor
      *
-     * @param ilShortLinkConfigGUI    $a_parent_obj   the ShortLink main GUI
-     * @param string            $a_parent_cmd   the table name ilShortLinkPlugin::TABLE_NAME
+     * @param ilShortLinkGUI $a_parent_obj the ShortLink main GUI
+     * @param string               $a_parent_cmd the table name ilShortLinkPlugin::TABLE_NAME
+     * @throws ilCtrlException
      */
     public function __construct(ilShortLinkGUI $a_parent_obj, string $a_parent_cmd)
     {
@@ -72,7 +73,7 @@ class ilShortLinkTableGUI extends ilTable2GUI {
         $this->setEnableHeader(true);
         $this->setFormAction($this->ctrl->getFormAction($a_parent_obj));
         $this->getMyDataFromDb();
-        $this->setTitle("Title");
+        $this->setTitle('Title');
     }
 
     /**
@@ -84,8 +85,8 @@ class ilShortLinkTableGUI extends ilTable2GUI {
     {
         $this->obj = new ilObjShortLink();
 
-        $this->setDefaultOrderField("id");
-        $this->setDefaultOrderDirection("asc");
+        $this->setDefaultOrderField('id');
+        $this->setDefaultOrderDirection('asc');
 
         // setExternalSorting was false before
         $this->setExternalSegmentation(true);
@@ -113,19 +114,20 @@ class ilShortLinkTableGUI extends ilTable2GUI {
     }
 
     /**
-     * Fills the single rows by id
+     * @throws ilCtrlException
+     * @throws JsonException
      */
     protected function fillRow(array $a_set): void
     {
         $this->initRowTemplate();
 
-        $this->tpl->setVariable("ID", $a_set['id']);
-        $this->linkToShortURL = "/link/" . $a_set['short_link'];
-        $this->tpl->setVariable("SHORTLINK", $this->linkToShortURL);
-        $this->tpl->setVariable("DOMAIN", $_SERVER['HTTP_HOST']);
-        $this->tpl->setVariable("FULL_URL", $a_set['full_url']);
-        $this->tpl->setVariable("CUSTOMER", $a_set['customer']);
-        $this->tpl->setVariable("CONTACT", $a_set['contact']);
+        $this->tpl->setVariable('ID', $a_set['id']);
+        $this->linkToShortURL = '/link/' . $a_set['short_link'];
+        $this->tpl->setVariable('SHORTLINK', $this->linkToShortURL);
+        $this->tpl->setVariable('DOMAIN', $_SERVER['HTTP_HOST']);
+        $this->tpl->setVariable('FULL_URL', $a_set['full_url']);
+        $this->tpl->setVariable('CUSTOMER', $a_set['customer']);
+        $this->tpl->setVariable('CONTACT', $a_set['contact']);
         $this->addActionsToRow($a_set);
     }
 
@@ -141,13 +143,13 @@ class ilShortLinkTableGUI extends ilTable2GUI {
     /**
      * Creates the lables for the columns in the table GUI for the ShortLink plugin
      */
-    protected function initColumns()
+    protected function initColumns(): void
     {
-        $this->addColumn("ID", 'id');
-        $this->addColumn("shortLink", 'short_link');
-        $this->addColumn("url", 'full_url');
-        $this->addColumn("customer", 'customer');
-        $this->addColumn("user", 'contact_user_login');
+        $this->addColumn('ID', 'id');
+        $this->addColumn('shortLink', 'short_link');
+        $this->addColumn('url', 'full_url');
+        $this->addColumn('customer', 'customer');
+        $this->addColumn('user', 'contact_user_login');
         $this->addColumn('', '', '1');
     }
 
@@ -157,12 +159,13 @@ class ilShortLinkTableGUI extends ilTable2GUI {
     protected function initActions(): void
     {
         global $lng;
-        $this->addAction('edit', $lng->txt('edit'), get_class($this->parent_obj), 'edit');
-        $this->addAction('delete', $lng->txt('delete'), get_class($this->parent_obj), 'delete');
+        $this->addAction('edit', $lng->txt('edit'), $this->parent_obj::class, 'edit');
+        $this->addAction('delete', $lng->txt('delete'), $this->parent_obj::class, 'delete');
     }
 
     /**
      * Initializes the toolbar with an add button to add new ShortLinks
+     * @throws ilCtrlException
      */
     protected function initToolbar() : void
     {
@@ -172,12 +175,14 @@ class ilShortLinkTableGUI extends ilTable2GUI {
     }
 
     /**
-     * Adds the drop down Action Button to ever single ShortLink
+     * Adds the dropdown Action Button to ever single ShortLink
+     * @throws ilCtrlException
+     * @throws JsonException
      */
-    protected function addActionsToRow(array $a_set)
+    protected function addActionsToRow(array $a_set): void
     {
         global $lng;
-        $this->ctrl->setParameterByClass(get_class($this->parent_obj), 'link_id',  $a_set['id']);
+        $this->ctrl->setParameterByClass($this->parent_obj::class, 'link_id', $a_set['id']);
         if (! empty($this->actions)) {
             $alist = new ilAdvancedSelectionListGUI();
             $alist->setId((string)$a_set['id']);
@@ -207,9 +212,15 @@ class ilShortLinkTableGUI extends ilTable2GUI {
      *
      * @return string
      */
+    /**
+     * @throws ilTemplateException
+     */
     public function render(): string
     {
-        $index_table_tpl = new ilTemplate("tpl.table_with_toolbar.html", true, true, "Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink");
+        $index_table_tpl = new ilTemplate(
+            'tpl.table_with_toolbar.html', true, true,
+            'Customizing/global/plugins/Services/UIComponent/UserInterfaceHook/ShortLink'
+        );
         if ($this->getToolbar()) {
             $index_table_tpl->setVariable('TOOLBAR', $this->getToolbar()->getHTML());
         }
@@ -218,7 +229,7 @@ class ilShortLinkTableGUI extends ilTable2GUI {
         return $index_table_tpl->get();
     }
 
-    protected function setToolbar(ilToolbarGUI $toolbar)
+    protected function setToolbar(ilToolbarGUI $toolbar): void
     {
         $this->toolbar = $toolbar;
     }
